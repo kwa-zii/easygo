@@ -1,0 +1,5 @@
+package easygo
+
+func hello() {
+
+}
