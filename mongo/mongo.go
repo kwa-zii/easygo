@@ -160,15 +160,10 @@ func (h *Mgo) GetList(c map[string]interface{}, collName string) ([]interface{},
 }
 
 // GetOne get document
-func (h *Mgo) GetOne(c map[string]interface{}, collName string) (map[string]interface{}, error) {
-	var result map[string]interface{}
+func (h *Mgo) GetOne(c map[string]interface{}, collName string, result interface{}) error {
 	collection := h.database.C(collName)
-
-	err := collection.Find(c).One(&result)
-	if err != nil {
-		beego.Error("query collection err. ", err)
-	}
-	return result, err
+	err := collection.Find(c).One(result)
+	return err
 }
 
 // Save document
