@@ -177,8 +177,5 @@ func (h *Mgo) Save(selector, update interface{}, collName string) error {
 func (h *Mgo) Insert(info interface{}, collName string) error {
 	collection := h.database.C(collName)
 	err := collection.Insert(info)
-	if err != nil {
-		beego.Error("insert collection err. ", err)
-	}
 	return err
 }
