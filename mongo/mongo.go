@@ -124,8 +124,6 @@ func (h *Mgo) GetErrNotFound() error {
 // QueryCount get document count
 func (h *Mgo) QueryCount(collName string) int {
 	collection := h.database.C(collName)
-	//condition := bson.M{"status": 1}
-	//count, err := collection.Find(condition).Count()
 	count, err := collection.Count()
 	if err != nil {
 		beego.Error("query collection count error . ", err)
@@ -134,28 +132,19 @@ func (h *Mgo) QueryCount(collName string) int {
 }
 
 // GetAll get all document list
-func (h *Mgo) GetAll(l int, s int, collName string) ([]interface{}, int, error) {
-	var result []interface{}
+func (h *Mgo) GetAll(collName string, limit, skip int, result interface{}, total *int) error {
 	collection := h.database.C(collName)
-	total, _ := collection.Find(nil).Count()
-	err := collection.Find(nil).Limit(l).Skip(s).All(&result)
-	if err != nil {
-		beego.Error("query collection err. ", err)
-	}
-
-	return result, total, err
+	*total, _ = collection.Find(nil).Count()
+	err := collection.Find(nil).Limit(limit).Skip(skip).All(result)
+	return err
 }
 
 // GetList get document list
-func (h *Mgo) GetList(c map[string]interface{}, collName string) ([]interface{}, int, error) {
-	var result []interface{}
+func (h *Mgo) GetList(collName string, c map[string]interface{}, limit, skip int, result interface{}, total *int) error {
 	collection := h.database.C(collName)
-	total, err := collection.Find(c).Count()
-	err = collection.Find(c).All(&result)
-	if err != nil {
-		beego.Error("query collection err. ", err)
-	}
-	return result, total, err
+	*total, _ = collection.Find(c).Count()
+	err := collection.Find(c).Limit(limit).Skip(skip).All(result)
+	return err
 }
 
 // GetOne get document
