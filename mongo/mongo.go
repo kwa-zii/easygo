@@ -130,7 +130,6 @@ func (h *Mgo) QueryCount(collName string) int {
 	if err != nil {
 		beego.Error("query collection count error . ", err)
 	}
-
 	return count
 }
 
@@ -160,22 +159,22 @@ func (h *Mgo) GetList(c map[string]interface{}, collName string) ([]interface{},
 }
 
 // GetOne get document
-func (h *Mgo) GetOne(c map[string]interface{}, collName string, result interface{}) error {
+func (h *Mgo) GetOne(query interface{}, collName string, result interface{}) error {
 	collection := h.database.C(collName)
-	err := collection.Find(c).One(result)
+	err := collection.Find(query).One(result)
 	return err
 }
 
-// Save document
-func (h *Mgo) Save(selector, update interface{}, collName string) error {
+// Update document
+func (h *Mgo) Update(collName string, selector, update interface{}) error {
 	collection := h.database.C(collName)
 	err := collection.Update(selector, update)
 	return err
 }
 
 // Insert new document
-func (h *Mgo) Insert(info interface{}, collName string) error {
+func (h *Mgo) Insert(collName string, docs ...interface{}) error {
 	collection := h.database.C(collName)
-	err := collection.Insert(info)
+	err := collection.Insert(docs)
 	return err
 }
