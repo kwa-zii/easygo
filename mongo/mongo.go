@@ -170,9 +170,6 @@ func (h *Mgo) GetOne(c map[string]interface{}, collName string, result interface
 func (h *Mgo) Save(selector, update interface{}, collName string) error {
 	collection := h.database.C(collName)
 	err := collection.Update(selector, update)
-	if err != nil {
-		beego.Error("update collection err. ", err)
-	}
 	return err
 }
 
