@@ -173,7 +173,7 @@ func (h *Mgo) Update(collName string, selector, update interface{}) error {
 }
 
 // Insert new document
-func (h *Mgo) Insert(collName string, docs ...interface{}) error {
+func (h *Mgo) Insert(collName string, docs interface{}) error {
 	collection := h.database.C(collName)
 	err := collection.Insert(docs)
 	return err
