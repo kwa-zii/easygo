@@ -148,7 +148,7 @@ func (h *Mgo) GetList(collName string, c map[string]interface{}, limit, skip int
 }
 
 // GetOne get document
-func (h *Mgo) GetOne(query interface{}, collName string, result interface{}) error {
+func (h *Mgo) GetOne(collName string, query interface{}, result interface{}) error {
 	collection := h.database.C(collName)
 	err := collection.Find(query).One(result)
 	return err
