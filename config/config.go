@@ -86,7 +86,6 @@ func (h *Configure) InitConfigFile() {
 	bytes, _ := json.Marshal(h.Conf)
 	fmt.Printf("Configure:\n%s\n", bytes)
 
-	//configFile := currentPath + "/tss-monitor.dev.json"
 	configFile := fmt.Sprintf("%s/%s.dev.json", currentPath, h.appName)
 	err = ioutil.WriteFile(configFile, bytes, 0666)
 	if err != nil {
@@ -95,7 +94,6 @@ func (h *Configure) InitConfigFile() {
 
 	bytes, _ = yaml.Marshal(h.Conf)
 	fmt.Printf("Configure:\n%s\n", bytes)
-	//configFile = currentPath + "/tss-monitor.dev.yaml"
 	configFile = fmt.Sprintf("%s/%s.dev.yaml", currentPath, h.appName)
 	err = ioutil.WriteFile(configFile, bytes, 0666) //写入文件(字节数组)
 	if err != nil {
@@ -103,8 +101,8 @@ func (h *Configure) InitConfigFile() {
 	}
 }
 
-// LoadConfig loads the bee tool configuration.
-// It looks for Beefile or bee.json in the current path,
+// LoadConfig loads the = configuration.
+// It looks for xxx.yaml or xxx.json in the current path,
 // and falls back to default configuration in case not found.
 func (h *Configure) LoadConfig(env string, deployMode string, result interface{}) error {
 	var err error
