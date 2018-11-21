@@ -40,7 +40,7 @@ func NewMongodb(mgoConf string) *Mgo {
 		Username:  res.conf.User,
 		Password:  res.conf.Passwd,
 		Direct:    false,
-		Timeout:   time.Second * 3,
+		Timeout:   time.Second * 5,
 		PoolLimit: 4096,
 		// Session.SetPoolLimit
 	}
