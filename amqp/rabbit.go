@@ -113,7 +113,7 @@ func (r *Rabbit) SendMQ(queueName string, v interface{}) {
 
 	var q amqp.Queue
 	q, err = r.amqpCh.QueueDeclare(
-		queueName, //name
+		queueName, //Queue name
 		true,      //durable
 		false,     //delete when unused
 		false,     //exclusive
@@ -125,10 +125,10 @@ func (r *Rabbit) SendMQ(queueName string, v interface{}) {
 	}
 
 	r.amqpCh.Publish(
-		exchangeName,
-		q.Name,
-		false,
-		false,
+		exchangeName, //exchange Name
+		q.Name,       //key
+		false,        //mandatory
+		false,        //immediate
 		amqp.Publishing{
 			Headers:     amqp.Table{},
 			ContentType: "text/plain",
@@ -139,13 +139,7 @@ func (r *Rabbit) SendMQ(queueName string, v interface{}) {
 
 // ConsumeQueue 消费队列 简单模式
 func (r *Rabbit) ConsumeQueue(queueName string, autoAck bool) (<-chan amqp.Delivery, error) {
-	// conn, err := amqp.Dial("amqp://guest:guest@localhost:5672/")
-	// failOnError(err, "Failed to connect to RabbitMQ")
-	// defer conn.Close()
 
-	// ch, err := conn.Channel()
-	// failOnError(err, "Failed to open a channel")
-	// defer ch.Close()
 	r.InitRabbitMQ()
 	q, err := r.amqpCh.QueueDeclare(
 		queueName, // name
@@ -173,11 +167,6 @@ func (r *Rabbit) ConsumeQueue(queueName string, autoAck bool) (<-chan amqp.Deliv
 	}
 
 	return msgs, err
-
-	// for d := range msgs {
-	// 	log.Printf("Received a message: %s", d.Body)
-	// 	time.Sleep(0)
-	// }
 }
 
 // ConsumeFanout 消费队列 广播模式
@@ -315,14 +304,6 @@ func (r *Rabbit) ConsumeRouteKey(exchType string, exchName string, queueNamePref
 		beego.Error("Failed to register a consumer. ", err)
 	}
 
-	// go func() {
-	// 	for d := range msgs {
-	// 		log.Printf(" [x] %s", d.Body)
-	// 	}
-	// }()
-
-	// log.Printf(" [*] Waiting for logs. To exit press CTRL+C")
-	// <-forever
 	return msgs, err
 }
 
