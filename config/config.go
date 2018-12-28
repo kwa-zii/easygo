@@ -32,11 +32,11 @@ type DirStruct struct {
 
 //CommonConf common config
 type CommonConf struct {
-	NodeName        string `json:"node_name"`
-	MasterHost      string `json:"master_host"`
-	AppKey          string `json:"app_key"`
-	SecKey          string `json:"sec_key"`
-	MaxTaskConsumer int    `json:"max_task_consumer"`
+	NodeName        string `json:"node_name" yaml:"node_name"`
+	MasterHost      string `json:"master_host" yaml:"master_host"`
+	AppKey          string `json:"app_key" yaml:"app_key"`
+	SecKey          string `json:"sec_key" yaml:"sec_key"`
+	MaxTaskConsumer int    `json:"max_task_consumer" yaml:"max_task_consumer"`
 }
 
 //RabbitMQConf rabbitmq config
