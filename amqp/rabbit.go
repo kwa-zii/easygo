@@ -284,7 +284,7 @@ func (r *Rabbit) ConsumeRouteKey(exchType string, exchName string, queueNamePref
 			q.Name,       // queue name
 			routekey,     // routing key
 			exchangeName, // exchange
-			false,
+			false,        // no-wait
 			nil)
 		if err != nil {
 			beego.Error("Failed to bind a queue. ", err)
