@@ -21,10 +21,12 @@ type amqpConf struct {
 
 // Rabbit entity
 type Rabbit struct {
-	Conf     amqpConf
-	amqpConn *amqp.Connection
-	amqpCh   *amqp.Channel
-	amqpURL  string
+	Conf        amqpConf
+	amqpConn    *amqp.Connection
+	amqpCh      *amqp.Channel
+	connConsume *amqp.Connection
+	//chConsume   *amqp.Channel
+	amqpURL string
 }
 
 // NewRabbit RabbitMQ构造方法
@@ -79,25 +81,32 @@ func (r *Rabbit) buildAmqpURL() string {
 // InitRabbitMQ 初始化RabbitMQ连接和频道
 func (r *Rabbit) InitRabbitMQ() {
 	var err error
-	r.amqpURL = r.buildAmqpURL()
-	r.amqpConn, err = amqp.Dial(r.amqpURL)
-	beego.Debug(r.amqpURL)
+	// if r.amqpConn == nil {
+	// 	r.amqpURL = r.buildAmqpURL()
+	// 	r.amqpConn, err = amqp.Dial(r.amqpURL)
+	// 	beego.Debug(r.amqpURL)
 
-	if err != nil {
-		defer r.amqpConn.Close()
-		beego.Error("Failed to connect tp rabbitmq", err, r.amqpURL)
-		panic(err)
-	}
+	// 	if err != nil {
+	// 		defer r.amqpConn.Close()
+	// 		beego.Error("Failed to connect tp rabbitmq", err, r.amqpURL)
+	// 		panic(err)
+	// 	}
+	// }
 
-	r.amqpCh, err = r.amqpConn.Channel()
-	if err != nil {
-		defer r.amqpCh.Close()
-		beego.Error("Failed to open channel", err)
-		panic(err)
+	if r.connConsume == nil {
+		r.amqpURL = r.buildAmqpURL()
+		r.connConsume, err = amqp.Dial(r.amqpURL)
+		beego.Debug(r.amqpURL)
+
+		if err != nil {
+			defer r.connConsume.Close()
+			beego.Error("Failed to connect tp rabbitmq", err, r.amqpURL)
+			panic(err)
+		}
 	}
 }
 
-// SendMQ 发送消息
+//SendMQ 发送消息
 func (r *Rabbit) SendMQ(queueName string, v interface{}) {
 	var err error
 	var msgContent []byte
@@ -106,11 +115,29 @@ func (r *Rabbit) SendMQ(queueName string, v interface{}) {
 		beego.Error("Marshal msg err ! ", err)
 	}
 
-	exchangeName := ""
-	if r.amqpCh == nil {
-		r.InitRabbitMQ()
+	if r.amqpConn == nil {
+		r.amqpURL = r.buildAmqpURL()
+		r.amqpConn, err = amqp.Dial(r.amqpURL)
+		beego.Debug(r.amqpURL)
+
+		if err != nil {
+			defer r.amqpConn.Close()
+			beego.Error("Failed to connect tp rabbitmq", err, r.amqpURL)
+			panic(err)
+		}
 	}
 
+	if r.amqpCh == nil {
+		r.InitRabbitMQ()
+		r.amqpCh, err = r.amqpConn.Channel()
+		if err != nil {
+			defer r.amqpCh.Close()
+			beego.Error("Failed to open channel", err)
+			panic(err)
+		}
+	}
+
+	exchangeName := ""
 	var q amqp.Queue
 	q, err = r.amqpCh.QueueDeclare(
 		queueName, //Queue name
@@ -139,9 +166,27 @@ func (r *Rabbit) SendMQ(queueName string, v interface{}) {
 
 // ConsumeQueue 消费队列 简单模式
 func (r *Rabbit) ConsumeQueue(queueName string, autoAck bool) (<-chan amqp.Delivery, error) {
+	var err error
+	var ch *amqp.Channel
 
 	r.InitRabbitMQ()
-	q, err := r.amqpCh.QueueDeclare(
+	// if r.chConsume == nil {
+	// 	r.chConsume, err = r.connConsume.Channel()
+	// 	if err != nil {
+	// 		defer r.chConsume.Close()
+	// 		beego.Error("Failed to open channel", err)
+	// 		panic(err)
+	// 	}
+	// }
+
+	ch, err = r.connConsume.Channel()
+	if err != nil {
+		defer ch.Close()
+		beego.Error("Failed to open channel", err)
+		panic(err)
+	}
+
+	q, err := ch.QueueDeclare(
 		queueName, // name
 		true,      // durable
 		false,     // delete when unused
@@ -153,7 +198,7 @@ func (r *Rabbit) ConsumeQueue(queueName string, autoAck bool) (<-chan amqp.Deliv
 		beego.Error("Failed to declare a queue ! ", err)
 	}
 
-	msgs, err := r.amqpCh.Consume(
+	msgs, err := ch.Consume(
 		q.Name,  // queue
 		"",      // consumer
 		autoAck, // auto-ack
@@ -171,17 +216,42 @@ func (r *Rabbit) ConsumeQueue(queueName string, autoAck bool) (<-chan amqp.Deliv
 
 // ConsumeFanout 消费队列 广播模式
 func (r *Rabbit) ConsumeFanout(exchName string, nodeName string, autoAck bool) (<-chan amqp.Delivery, error) {
+	var err error
+	var ch *amqp.Channel
+
+	r.InitRabbitMQ()
+	// if r.chConsume == nil {
+	// 	r.chConsume, err = r.connConsume.Channel()
+	// 	if err != nil {
+	// 		defer r.chConsume.Close()
+	// 		beego.Error("Failed to open channel", err)
+	// 		panic(err)
+	// 	}
+	// }
+
+	ch, err = r.connConsume.Channel()
+	if err != nil {
+		defer ch.Close()
+		beego.Error("Failed to open channel", err)
+		panic(err)
+	}
+
 	exchangeName := "tss_cmd"
 	if exchName != "" {
 		exchangeName = exchName
 	}
 	exchType := "fanout"
 
-	if r.amqpCh == nil {
-		r.InitRabbitMQ()
-	}
+	// var ch *amqp.Channel
+	// var err error
+	// ch, err = r.amqpConn.Channel()
+	// if err != nil {
+	// 	defer ch.Close()
+	// 	beego.Error("Failed to open channel", err)
+	// 	panic(err)
+	// }
 
-	err := r.amqpCh.ExchangeDeclare(
+	err = ch.ExchangeDeclare(
 		exchangeName, // name
 		exchType,     // type
 		true,         // durable
@@ -195,7 +265,7 @@ func (r *Rabbit) ConsumeFanout(exchName string, nodeName string, autoAck bool) (
 		panic(err)
 	}
 
-	q, err := r.amqpCh.QueueDeclare(
+	q, err := ch.QueueDeclare(
 		nodeName, // name
 		false,    // durable
 		false,    // delete when unused
@@ -207,7 +277,7 @@ func (r *Rabbit) ConsumeFanout(exchName string, nodeName string, autoAck bool) (
 		beego.Error("Failed to declare a queue. ", err)
 	}
 
-	err = r.amqpCh.QueueBind(
+	err = ch.QueueBind(
 		q.Name,       // queue name
 		nodeName,     // routing key
 		exchangeName, // exchange
@@ -219,7 +289,7 @@ func (r *Rabbit) ConsumeFanout(exchName string, nodeName string, autoAck bool) (
 
 	// var msgs <-chan amqp.Delivery
 	// var errs error
-	msgs, err := r.amqpCh.Consume(
+	msgs, err := ch.Consume(
 		q.Name,  // queue
 		"",      // consumer
 		autoAck, // auto-ack
@@ -240,19 +310,37 @@ func (r *Rabbit) ConsumeFanout(exchName string, nodeName string, autoAck bool) (
 
 // ConsumeRouteKey 消费队列 路由键模式
 func (r *Rabbit) ConsumeRouteKey(exchType string, exchName string, queueNamePrefix string, routeKeys []string, autoAck bool) (<-chan amqp.Delivery, error) {
+
+	var err error
+	var ch *amqp.Channel
+
+	r.InitRabbitMQ()
+	// if r.chConsume == nil {
+	// 	r.chConsume, err = r.connConsume.Channel()
+	// 	if err != nil {
+	// 		defer r.chConsume.Close()
+	// 		beego.Error("Failed to open channel", err)
+	// 		panic(err)
+	// 	}
+	// }
+
+	ch, err = r.connConsume.Channel()
+	if err != nil {
+		defer ch.Close()
+		beego.Error("Failed to open channel", err)
+		panic(err)
+	}
+
 	if exchType == "" {
 		exchType = "direct"
 	}
 
-	if r.amqpCh == nil {
-		r.InitRabbitMQ()
-	}
 	exchangeName := "tss_task"
 	if exchName != "" {
 		exchangeName = exchName
 	}
 
-	err := r.amqpCh.ExchangeDeclare(
+	err = ch.ExchangeDeclare(
 		exchangeName, // name
 		exchType,     // type
 		true,         // durable
@@ -266,7 +354,7 @@ func (r *Rabbit) ConsumeRouteKey(exchType string, exchName string, queueNamePref
 	}
 
 	queueName := queueNamePrefix + strings.Join(routeKeys, "_")
-	q, err := r.amqpCh.QueueDeclare(
+	q, err := ch.QueueDeclare(
 		queueName, // name
 		true,      // durable
 		false,     // delete when unused
@@ -280,7 +368,7 @@ func (r *Rabbit) ConsumeRouteKey(exchType string, exchName string, queueNamePref
 
 	for _, routekey := range routeKeys {
 		log.Printf("Binding queue %s to exchange %s with routing key %s", q.Name, exchangeName, routekey)
-		err = r.amqpCh.QueueBind(
+		err = ch.QueueBind(
 			q.Name,       // queue name
 			routekey,     // routing key
 			exchangeName, // exchange
@@ -291,7 +379,7 @@ func (r *Rabbit) ConsumeRouteKey(exchType string, exchName string, queueNamePref
 		}
 	}
 
-	msgs, err := r.amqpCh.Consume(
+	msgs, err := ch.Consume(
 		q.Name,  // queue
 		"",      // consumer
 		autoAck, // auto ack
