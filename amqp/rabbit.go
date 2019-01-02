@@ -128,7 +128,6 @@ func (r *Rabbit) SendMQ(queueName string, v interface{}) {
 	}
 
 	if r.amqpCh == nil {
-		r.InitRabbitMQ()
 		r.amqpCh, err = r.amqpConn.Channel()
 		if err != nil {
 			defer r.amqpCh.Close()
@@ -170,15 +169,6 @@ func (r *Rabbit) ConsumeQueue(queueName string, autoAck bool) (<-chan amqp.Deliv
 	var ch *amqp.Channel
 
 	r.InitRabbitMQ()
-	// if r.chConsume == nil {
-	// 	r.chConsume, err = r.connConsume.Channel()
-	// 	if err != nil {
-	// 		defer r.chConsume.Close()
-	// 		beego.Error("Failed to open channel", err)
-	// 		panic(err)
-	// 	}
-	// }
-
 	ch, err = r.connConsume.Channel()
 	if err != nil {
 		defer ch.Close()
@@ -220,15 +210,6 @@ func (r *Rabbit) ConsumeFanout(exchName string, nodeName string, autoAck bool) (
 	var ch *amqp.Channel
 
 	r.InitRabbitMQ()
-	// if r.chConsume == nil {
-	// 	r.chConsume, err = r.connConsume.Channel()
-	// 	if err != nil {
-	// 		defer r.chConsume.Close()
-	// 		beego.Error("Failed to open channel", err)
-	// 		panic(err)
-	// 	}
-	// }
-
 	ch, err = r.connConsume.Channel()
 	if err != nil {
 		defer ch.Close()
@@ -241,15 +222,6 @@ func (r *Rabbit) ConsumeFanout(exchName string, nodeName string, autoAck bool) (
 		exchangeName = exchName
 	}
 	exchType := "fanout"
-
-	// var ch *amqp.Channel
-	// var err error
-	// ch, err = r.amqpConn.Channel()
-	// if err != nil {
-	// 	defer ch.Close()
-	// 	beego.Error("Failed to open channel", err)
-	// 	panic(err)
-	// }
 
 	err = ch.ExchangeDeclare(
 		exchangeName, // name
@@ -315,14 +287,6 @@ func (r *Rabbit) ConsumeRouteKey(exchType string, exchName string, queueNamePref
 	var ch *amqp.Channel
 
 	r.InitRabbitMQ()
-	// if r.chConsume == nil {
-	// 	r.chConsume, err = r.connConsume.Channel()
-	// 	if err != nil {
-	// 		defer r.chConsume.Close()
-	// 		beego.Error("Failed to open channel", err)
-	// 		panic(err)
-	// 	}
-	// }
 
 	ch, err = r.connConsume.Channel()
 	if err != nil {
