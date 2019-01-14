@@ -107,7 +107,7 @@ func (r *Rabbit) InitRabbitMQ() {
 }
 
 //SendMQ 发送消息
-func (r *Rabbit) SendMQ(queueName string, v interface{}) {
+func (r *Rabbit) SendMQ(queueName string, v interface{}) error {
 	var err error
 	var msgContent []byte
 	msgContent, err = json.Marshal(v)
@@ -150,7 +150,7 @@ func (r *Rabbit) SendMQ(queueName string, v interface{}) {
 		r.InitRabbitMQ()
 	}
 
-	r.amqpCh.Publish(
+	err = r.amqpCh.Publish(
 		exchangeName, //exchange Name
 		q.Name,       //key
 		false,        //mandatory
@@ -160,6 +160,7 @@ func (r *Rabbit) SendMQ(queueName string, v interface{}) {
 			ContentType: "text/plain",
 			Body:        []byte(msgContent),
 		})
+	return err
 
 }
 
