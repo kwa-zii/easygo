@@ -25,7 +25,7 @@ func (r *Broker) InitConsumer() {
 }
 
 // ConsumeQueue 消费队列 简单模式
-func (r *Broker) ConsumeQueue(queueName string, autoAck bool) (<-chan amqp.Delivery, error) {
+func (r *Broker) ConsumeQueue(queueName string, autoAck bool) (<-chan amqp.Delivery, *amqp.Channel, error) {
 	var err error
 	var ch *amqp.Channel
 
@@ -62,7 +62,7 @@ func (r *Broker) ConsumeQueue(queueName string, autoAck bool) (<-chan amqp.Deliv
 		beego.Error("Failed to register a consumer! ", err)
 	}
 
-	return msgs, err
+	return msgs, ch, err
 }
 
 // ConsumeFanout 消费队列 广播模式
