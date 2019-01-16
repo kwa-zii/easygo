@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"strings"
+	"time"
 
 	"github.com/astaxie/beego"
 	"github.com/streadway/amqp"
@@ -78,21 +79,46 @@ func (r *Rabbit) buildAmqpURL() string {
 	return str
 }
 
-// InitRabbitMQ 初始化RabbitMQ连接和频道
+// InitRabbitMQ 初始化生产连接和频道
 func (r *Rabbit) InitRabbitMQ() {
 	var err error
-	// if r.amqpConn == nil {
-	// 	r.amqpURL = r.buildAmqpURL()
-	// 	r.amqpConn, err = amqp.Dial(r.amqpURL)
-	// 	beego.Debug(r.amqpURL)
 
-	// 	if err != nil {
-	// 		defer r.amqpConn.Close()
-	// 		beego.Error("Failed to connect tp rabbitmq", err, r.amqpURL)
-	// 		panic(err)
-	// 	}
-	// }
+	if r.amqpConn == nil {
+		r.amqpURL = r.buildAmqpURL()
+		r.amqpConn, err = amqp.Dial(r.amqpURL)
+		beego.Debug(r.amqpURL)
+		if err != nil {
+			defer r.amqpConn.Close()
+			beego.Error("Failed to connect tp rabbitmq", err, r.amqpURL)
+			panic(err)
+		}
+	}
 
+	if r.amqpCh == nil {
+		r.amqpCh, err = r.amqpConn.Channel()
+		if err != nil {
+			beego.Error(err)
+			defer r.amqpCh.Close()
+			beego.Error("Failed to open channel", err)
+			panic(err)
+		}
+
+		//channel意外关闭时，重新建立连接和channel
+		go func() {
+			cc := make(chan *amqp.Error)
+			e := <-r.amqpCh.NotifyClose(cc)
+			beego.Error("[RABBITMQ_CLIENT]", "channel close error:", e.Error())
+			r.amqpCh = nil
+			r.amqpConn = nil
+			r.InitRabbitMQ()
+			time.Sleep(1)
+		}()
+	}
+}
+
+// InitRabbitMQConsume 初始化消费连接和频道
+func (r *Rabbit) InitRabbitMQConsume() {
+	var err error
 	if r.connConsume == nil {
 		r.amqpURL = r.buildAmqpURL()
 		r.connConsume, err = amqp.Dial(r.amqpURL)
@@ -115,26 +141,7 @@ func (r *Rabbit) SendMQ(queueName string, v interface{}) error {
 		beego.Error("Marshal msg err ! ", err)
 	}
 
-	if r.amqpConn == nil {
-		r.amqpURL = r.buildAmqpURL()
-		r.amqpConn, err = amqp.Dial(r.amqpURL)
-		beego.Debug(r.amqpURL)
-
-		if err != nil {
-			defer r.amqpConn.Close()
-			beego.Error("Failed to connect tp rabbitmq", err, r.amqpURL)
-			panic(err)
-		}
-	}
-
-	if r.amqpCh == nil {
-		r.amqpCh, err = r.amqpConn.Channel()
-		if err != nil {
-			defer r.amqpCh.Close()
-			beego.Error("Failed to open channel", err)
-			panic(err)
-		}
-	}
+	r.InitRabbitMQ()
 
 	exchangeName := ""
 	var q amqp.Queue
@@ -169,7 +176,7 @@ func (r *Rabbit) ConsumeQueue(queueName string, autoAck bool) (<-chan amqp.Deliv
 	var err error
 	var ch *amqp.Channel
 
-	r.InitRabbitMQ()
+	r.InitRabbitMQConsume()
 	ch, err = r.connConsume.Channel()
 	if err != nil {
 		defer ch.Close()
@@ -210,7 +217,7 @@ func (r *Rabbit) ConsumeFanout(exchName string, nodeName string, autoAck bool) (
 	var err error
 	var ch *amqp.Channel
 
-	r.InitRabbitMQ()
+	r.InitRabbitMQConsume()
 	ch, err = r.connConsume.Channel()
 	if err != nil {
 		defer ch.Close()
@@ -287,7 +294,7 @@ func (r *Rabbit) ConsumeRouteKey(exchType string, exchName string, queueNamePref
 	var err error
 	var ch *amqp.Channel
 
-	r.InitRabbitMQ()
+	r.InitRabbitMQConsume()
 
 	ch, err = r.connConsume.Channel()
 	if err != nil {
