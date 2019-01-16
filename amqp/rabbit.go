@@ -163,9 +163,10 @@ func (r *Rabbit) SendMQ(queueName string, v interface{}) error {
 		false,        //mandatory
 		false,        //immediate
 		amqp.Publishing{
-			Headers:     amqp.Table{},
-			ContentType: "text/plain",
-			Body:        []byte(msgContent),
+			DeliveryMode: amqp.Persistent,
+			Headers:      amqp.Table{},
+			ContentType:  "text/plain",
+			Body:         []byte(msgContent),
 		})
 	return err
 
@@ -302,6 +303,7 @@ func (r *Rabbit) ConsumeRouteKey(exchType string, exchName string, queueNamePref
 		beego.Error("Failed to open channel", err)
 		panic(err)
 	}
+	ch.Qos(1, 0, false)
 
 	if exchType == "" {
 		exchType = "direct"
