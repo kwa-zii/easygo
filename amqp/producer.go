@@ -22,6 +22,7 @@ func (r *Broker) InitProducer() {
 			panic(err)
 		}
 	}
+	beego.Debug(r.connProducer.LocalAddr())
 
 	if r.chProducer == nil {
 		r.chProducer, err = r.connProducer.Channel()
